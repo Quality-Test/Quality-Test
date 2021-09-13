@@ -1,0 +1,53 @@
+bigiq_domain: GLOBAL
+build_source: INT-UC-004-002-engineer-v1.yaml
+bigip_name: ltmdvv01e2.ibmsl.cloud.test.group
+tenant_name: dev_https
+application_list:
+  - application_name: stephen-archer-12
+    vserver_list:
+      - vserver_name: happy-bobs
+        virtual_addresses: 
+          - 1.1.1.7
+        virtual_port: 443
+        allow_vlans: 
+          - /Common/sg2100_lbg-dc-dev_test-all
+        snat: /Common/lbg-dc-dev_test-all_10.177.23.22_snat
+        chosen_pool: web_pool_1
+        chosen_server_TLS: server-TLS-profile
+        chosen_client_TLS: client-TLS-profile
+    https_monitor_list:
+      - https_monitor_name: default-https-monitor
+        chosen_client_cert: demo-client-cert
+        send_string: ""
+        receive_string: ""
+    pool_list:
+      - pool_name: web_pool_1
+        server_addresses:
+          - 1.1.1.66
+          - 1.1.1.67
+          - 1.1.1.68
+        server_port: 443
+        chosen_monitor_name: default-https-monitor
+    server_TLS_list:
+      - server_TLS_name : server-TLS-profile
+        client_auth: require
+        trust_chain: /Common/f5-ca-bundle.crt
+        chosen_server_cert: demo-server-cert
+        tls1_2: true
+        tls1_3: false
+        cipher_group: /Common/f5-secure
+    client_TLS_list:
+      - client_TLS_name : client-TLS-profile
+        trust_chain: /Common/f5-ca-bundle.crt
+        chosen_client_cert: demo-client-cert
+        tls1_2: true
+        tls1_3: false
+        cipher_group: /Common/f5-secure
+    server_cert_list:
+      - server_cert_name: demo-server-cert
+        certificate: /Common/Demo-Certificate
+        key: /Common/Demo-Certificate
+    client_cert_list:
+      - client_cert_name: demo-client-cert
+        certificate: /Common/Demo-Certificate
+        key: /Common/Demo-Certificate

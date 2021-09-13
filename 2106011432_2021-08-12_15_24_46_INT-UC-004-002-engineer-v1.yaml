@@ -1,0 +1,162 @@
+title: Relates to pattern INT-UC-004-002-v1, expanded to allow irules and open for engineer led security options.
+description: Internal HTTPS/TLS termination and re-initiation, INT-UC-004-002-v1. Example here https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/userguide/examples.html
+contentType: application/json
+template: |
+    {
+        "class": "AS3",
+        "action": "deploy",
+        "persist": true,
+        "declaration": {
+            "class": "ADC",
+            "schemaVersion": "3.27.0",
+            "remark": "{{build_source}}",
+            "target": {
+                "hostname": "{{bigip_name}}"
+            },
+            "{{tenant_name}}": {
+                "class": "Tenant",
+                {{#application_list}}
+                    "{{application_name}}": {
+                        "class": "Application",
+                        "template": "generic",
+                        {{#vserver_list}}
+                        "{{vserver_name}}": {
+                            "class": "Service_HTTPS",
+                            {{#irules_list}}
+                            "iRules": [
+                                {{.}}
+                            ],
+                            {{/irules_list}}
+                            {{^irules_list}}
+
+                            {{/irules_list}}
+                            "virtualAddresses": [
+                                {{#virtual_addresses}}
+                                {{.}},
+                                {{/virtual_addresses}}
+                            ],
+                            "virtualPort": {{virtual_port::integer}},
+                            "allowVlans": [
+                                {{#allow_vlans}}
+                                "bigip": {{.}},
+                                {{/allow_vlans}}
+                            ],
+                            "snat": {
+                                "bigip": "{{snat}}"
+                            },
+                            "pool": "{{chosen_pool}}",
+                            "serverTLS": "{{chosen_server_TLS}}",
+                            "clientTLS": "{{chosen_client_TLS}}"
+                        },
+                        {{/vserver_list}}
+                        {{#https_monitor_list}}
+                        "{{https_monitor_name}}": {
+                            "class": "Monitor",
+                            "monitorType": "https",
+                            "clientCertificate": "{{chosen_client_cert}}",
+                            "send": "{{send_string}}",
+                            "receive": "{{receive_string}}"
+                        },
+                        {{/https_monitor_list}}
+                        {{#pool_list}}
+                        "{{pool_name}}": {
+                            "class": "Pool",
+                            "monitors": [
+                            {
+                                "use": "{{chosen_monitor_name}}"
+                            }],
+                            "members": [
+                            {
+                                "servicePort": {{server_port::integer}},
+                                "shareNodes": true,
+                                "serverAddresses": [
+                                    {{#server_addresses}}
+                                    {{.}},
+                                    {{/server_addresses}}
+                                ]
+                            }]
+                        },
+                        {{/pool_list}}
+                        {{#server_TLS_list}}
+                        "{{server_TLS_name}}": {
+                            "class": "TLS_Server",
+                            "remark": "Connections arriving to ADC",
+                            "authenticationMode": "{{client_auth}}",
+                            "authenticationTrustCA": {
+                                "bigip": "{{trust_chain}}"
+                            },
+                            "certificates": [{
+                                "certificate": "{{chosen_server_cert}}"
+                            }],
+                            "tls1_0Enabled": false,
+                            "tls1_1Enabled": false,
+                            "tls1_2Enabled": {{tls1_2::boolean}},
+                            "tls1_3Enabled": {{tls1_3::boolean}},
+                            "cipherGroup": {
+                                "bigip": "{{cipher_group}}"
+                            },
+                        },
+                        {{/server_TLS_list}}
+                        {{#client_TLS_list}}
+                        "{{client_TLS_name}}": {
+                            "class": "TLS_Client",
+                            "remark": "Connections leaving ADC",
+                            "clientCertificate": "{{chosen_client_cert}}",
+                            "tls1_0Enabled": false,
+                            "tls1_1Enabled": false,
+                            "tls1_2Enabled": {{tls1_2::boolean}},
+                            "tls1_3Enabled": {{tls1_3::boolean}},
+                            "cipherGroup": {
+                                "bigip": "{{cipher_group}}"
+                            },
+                        },
+                        {{/client_TLS_list}}
+                        {{#server_cert_list}}
+                        "{{server_cert_name}}": {
+                            "class": "Certificate",
+                            "certificate": {
+                                "bigip": "{{certificate}}"
+                            },
+                            "privateKey": {
+                                "bigip": "{{key}}"
+                            }
+                        },
+                        {{/server_cert_list}}
+                        {{#client_cert_list}}
+                        "{{client_cert_name}}": {
+                            "class": "Certificate",
+                            "certificate": {
+                                "bigip": "{{certificate}}"
+                            },
+                            "privateKey": {
+                                "bigip": "{{key}}"
+                            }
+                        },
+                        {{/client_cert_list}}
+                        {{#irules_object_list}}
+                        "{{irules_name}}": {
+                            "class": "iRule",
+                            "iRule": {
+                                "url": "http://apptuv57a6.ibmsl.cloud.test.group/irules/{{tenant_name}}/{{irules_file}}"
+                            }
+                        },
+                        {{/irules_object_list}}
+                        {{^irules_object_list}}
+
+                        {{/irules_object_list}}
+                        {{#datagroup_list}}
+                        "{{datagroup_name}}": {
+                            "class": "Data_Group",
+                            "keyDataType": "{{datagroup_type}}",
+                            "externalFilePath": "http://apptuv57a6.ibmsl.cloud.test.group/datagroups/{{tenant_name}}/{{datagroup_file}}",
+                            "storageType": "external"
+                        },
+                        {{/datagroup_list}}
+                        {{^datagroup_list}}
+
+                        {{/datagroup_list}}
+                    },
+                {{/application_list}}
+            }
+        }
+    }
